@@ -1,0 +1,68 @@
+name: Botgram shell-bot in GitHub Actions Ubuntu Runner
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: 'README.md'
+  workflow_dispatch:
+
+jobs:
+  shell:
+    runs-on: ubuntu-20.04
+
+    env:
+      GitHubMail: "rokibhasansagar2014@outlook.com"
+      GitHubName: "rokibhasansagar"
+      # GH_TOKEN >> Github Personal Access Token << In Repository Secrets
+      # authToken >> Telegram Bot Token << In Repository Secrets
+      # ownerID >> Telegram User/Admin owner ID << In Repository Secrets
+
+    steps:
+      - name: Set Git Configs & Secrets
+        run: |
+          git config --global user.email ${GitHubMail}
+          git config --global user.name ${GitHubName}
+          git config --global color.ui true
+          git config --global credential.helper store
+          echo "https://${GitHubName}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Cleanup Workspace
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Re-install nodejs and npm
+        run: |
+          nvm install --latest-npm --lts --no-progress --default
+          nvm use --silent --lts
+
+      - name: Clone botgram shell-bot repo and Generate config
+        run: |
+          git clone https://github.com/botgram/shell-bot --depth 1 shellbot
+          cd shellbot
+          cat << EOF > config.json
+          {
+            "authToken": "${{ secrets.authToken }}",
+            "owner": "${{ secrets.ownerID }}"
+          }
+          EOF
+
+      - name: Install nodejs Dependencies
+        run: |
+          cd shellbot
+          npm install
+
+      - name: Run shell-bot server
+        timeout-minutes: 300
+        continue-on-error: true
+        run: |
+          cd shellbot
+          node server
+
+      - name: Self Looping
+        run: |
+          git clone https://${GitHubName}:${{ secrets.GH_TOKEN }}@github.com/${GITHUB_REPOSITORY} loop
+          cd loop || exit 1
+          echo $(( RANDOM - ( RANDOM % RANDOM ) )) > looper.txt
+          git add looper.txt
+          git commit -m "Looping at $(date -u +%D-%T%P)"
+          git push -f origin main
+          git push -q https://${{ secrets.GH_TOKEN }}@github.com/${GITHUB_REPOSITORY} HEAD:main
