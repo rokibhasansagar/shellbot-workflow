@@ -31,10 +31,8 @@ jobs:
 
       - name: Re-install nodejs and npm
         run: |
-          curl -sL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
-          source ~/.bashrc && source ~/.bash_profile
-          nvm install --latest-npm --lts --no-progress --default
-          nvm use --silent --lts
+          curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+          sudo apt-get -qq -y install nodejs
 
       - name: Clone botgram shell-bot repo and Generate config
         run: |
@@ -43,7 +41,7 @@ jobs:
           cat << EOF > config.json
           {
             "authToken": "${{ secrets.authToken }}",
-            "owner": "${{ secrets.ownerID }}"
+            "owner": ${{ secrets.ownerID }}
           }
           EOF
 
